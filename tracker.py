@@ -2,6 +2,7 @@ import requests
 import json
 import os
 from datetime import datetime
+from zoneinfo import ZoneInfo
 
 # Secrets
 APIFY_TOKEN = os.getenv("APIFY_TOKEN")
@@ -57,6 +58,11 @@ new_reviews = current_reviews - old_reviews
 if new_reviews < 0:
     new_reviews = 0
 
+# Current IST time
+current_time_ist = datetime.now(
+    ZoneInfo("Asia/Kolkata")
+).strftime("%d-%m-%Y %I:%M %p IST")
+
 # Telegram message
 message = f"""
 📍 {business_name}
@@ -65,7 +71,7 @@ message = f"""
 📝 Total Reviews: {current_reviews}
 🆕 New Reviews: {new_reviews}
 
-📅 {datetime.now().strftime('%d-%m-%Y %H:%M')}
+📅 {current_time_ist}
 """
 
 print(message)
