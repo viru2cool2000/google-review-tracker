@@ -3,18 +3,16 @@ import json
 import os
 from datetime import datetime
 
-# Load secrets
+# Secrets
 APIFY_TOKEN = os.getenv("APIFY_TOKEN")
 BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
 
-# File to store previous review count
 FILE_NAME = "reviews.json"
 
-# Apify API URL
+# Apify URL
 url = f"https://api.apify.com/v2/acts/compass~google-maps-extractor/run-sync-get-dataset-items?token={APIFY_TOKEN}"
 
-# Search payload
 payload = {
     "searchStringsArray": [
         "Chandukaka Saraf Kalaburagi"
@@ -22,32 +20,25 @@ payload = {
     "maxCrawledPlacesPerSearch": 1
 }
 
-# Call Apify API
+# Fetch data
 response = requests.post(url, json=payload)
 
-# Convert response to JSON
 data = response.json()
 
 print(data)
 
-# Validate response
-if not isinstance(data, list):
+if not isinstance(data, list) or len(data) == 0:
     print("Invalid API response")
     exit()
 
-if len(data) == 0:
-    print("No places found")
-    exit()
-
-# First result
 place = data[0]
 
-# Extract details
+# Correct field names
 business_name = place.get("title", "Unknown")
-current_reviews = place.get("totalScoreReviews", 0)
-rating = place.get("stars", 0)
+current_reviews = place.get("reviewsCount", 0)
+rating = place.get("totalScore", 0)
 
-# Load old review count
+# Load old reviews
 old_reviews = 0
 
 if os.path.exists(FILE_NAME):
@@ -58,13 +49,12 @@ if os.path.exists(FILE_NAME):
     except:
         pass
 
-# Calculate new reviews
 new_reviews = current_reviews - old_reviews
 
 if new_reviews < 0:
     new_reviews = 0
 
-# Telegram message
+# Message
 message = f"""
 📍 {business_name}
 
@@ -77,7 +67,7 @@ message = f"""
 
 print(message)
 
-# Send Telegram message
+# Telegram API
 telegram_url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
 
 telegram_response = requests.post(
@@ -91,6 +81,6 @@ telegram_response = requests.post(
 print("Telegram Response:")
 print(telegram_response.text)
 
-# Save latest review count
+# Save latest count
 with open(FILE_NAME, "w") as file:
     json.dump({"count": current_reviews}, file)
