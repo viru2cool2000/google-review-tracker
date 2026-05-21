@@ -1,45 +1,75 @@
-from playwright.sync_api import sync_playwright
-import re
+import requests
+import json
+import os
+from datetime import datetime
 
-MAPS_URL = "https://www.google.com/maps/place/Chandukaka+Saraf+Pvt+Ltd+-+Kalaburagi"
+APIFY_TOKEN = os.getenv("APIFY_TOKEN")
 
-with sync_playwright() as p:
+FILE_NAME = "reviews.json"
 
-    browser = p.chromium.launch(
-        headless=True,
-        args=[
-            "--no-sandbox",
-            "--disable-dev-shm-usage"
-        ]
-    )
+url = f"https://api.apify.com/v2/acts/compass~google-maps-extractor/run-sync-get-dataset-items?token={APIFY_TOKEN}"
 
-    page = browser.new_page(
-        user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36"
-    )
+payload = {
+    "searchStringsArray": [
+        "Chandukaka Saraf Kalaburagi"
+    ],
+    "maxCrawledPlacesPerSearch": 1
+}
 
-    page.goto(
-        MAPS_URL,
-        timeout=90000,
-        wait_until="domcontentloaded"
-    )
+response = requests.post(url, json=payload)
 
-    # wait manually
-    page.wait_for_timeout(20000)
+data = response.json()
 
-    text = page.locator("body").inner_text()
+print(data)
 
-    print(text)
+place = data[0]
 
-    matches = re.findall(
-        r'([0-9,]+)\s+reviews',
-        text,
-        re.IGNORECASE
-    )
+business_name = place.get("title", "Unknown")
+current_reviews = place.get("totalScoreReviews", 0)
+rating = place.get("stars", 0)
 
-    if matches:
-        current_reviews = int(matches[0].replace(",", ""))
-        print("Total Reviews:", current_reviews)
-    else:
-        print("Review count not found")
+# Previous review count
+old_reviews = 0
 
-    browser.close()
+if os.path.exists(FILE_NAME):
+    try:
+        with open(FILE_NAME, "r") as file:
+            saved = json.load(file)
+            old_reviews = saved.get("count", 0)
+    except:
+        pass
+
+new_reviews = current_reviews - old_reviews
+
+if new_reviews < 0:
+    new_reviews = 0
+
+message = f"""
+📍 {business_name}
+
+⭐ Rating: {rating}
+📝 Total Reviews: {current_reviews}
+🆕 New Reviews: {new_reviews}
+
+📅 {datetime.now().strftime('%d-%m-%Y %H:%M')}
+"""
+
+print(message)
+
+# Telegram
+BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
+CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
+
+telegram_url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
+
+requests.post(
+    telegram_url,
+    data={
+        "chat_id": CHAT_ID,
+        "text": message
+    }
+)
+
+# Save latest count
+with open(FILE_NAME, "w") as file:
+    json.dump({"count": current_reviews}, file)
