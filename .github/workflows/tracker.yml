@@ -18,11 +18,21 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Install
-        run: pip install requests beautifulsoup4
+      - name: Install Dependencies
+        run: |
+          pip install playwright
+          playwright install chromium
 
       - name: Run Script
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: python tracker.py
+
+      - name: Commit Review Data
+        run: |
+          git config --global user.name "github-actions"
+          git config --global user.email "actions@github.com"
+          git add reviews.json
+          git commit -m "Update reviews" || echo "No changes"
+          git push
