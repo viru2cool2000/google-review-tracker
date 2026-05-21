@@ -13,20 +13,30 @@ with sync_playwright() as p:
         ]
     )
 
-    page = browser.new_page()
+    page = browser.new_page(
+        user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36"
+    )
 
-    page.goto(MAPS_URL, timeout=60000)
+    # Extra headers
+    page.set_extra_http_headers({
+        "Accept-Language": "en-US,en;q=0.9"
+    })
 
-    page.wait_for_timeout(15000)
+    page.goto(MAPS_URL, timeout=90000, wait_until="networkidle")
 
-    body_text = page.locator("body").inner_text()
+    # Wait longer for dynamic loading
+    page.wait_for_timeout(20000)
 
-    print(body_text)
+    # Get visible text
+    text = page.locator("body").inner_text()
 
-    match = re.search(r'([0-9,]+)\s+reviews', body_text, re.IGNORECASE)
+    print(text)
 
-    if match:
-        current_reviews = int(match.group(1).replace(",", ""))
+    # Better regex
+    matches = re.findall(r'([0-9,]+)\s+reviews', text, re.IGNORECASE)
+
+    if matches:
+        current_reviews = int(matches[0].replace(",", ""))
         print("Total Reviews:", current_reviews)
     else:
         print("Review count not found")
