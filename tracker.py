@@ -63,8 +63,7 @@ message = f"""
 📅 {datetime.now().strftime('%d-%m-%Y %H:%M')}
 """
 
-print(message)
-
+print("TOKEN:", APIFY_TOKEN)
 # Telegram
 BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
