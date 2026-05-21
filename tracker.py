@@ -5,7 +5,7 @@ import os
 import requests
 from datetime import datetime
 
-MAPS_URL = "https://www.google.com/maps/search/Chandukaka+Saraf+Kalaburagi"
+MAPS_URL = "https://www.google.com/maps/place/Chandukaka+Saraf+Pvt+Ltd+-+Kalaburagi/@17.3322703,76.8357625,17z/data=!3m1!4b1!4m6!3m5!1s0x3bc8c79384cd41eb:0x56fd46e579715ee7!8m2!3d17.3322703!4d76.8357625!16s%2Fg%2F11n4k0ldq8?entry=ttu&g_ep=EgoyMDI2MDUxNy4wIKXMDSoASAFQAw%3D%3D"
 
 with sync_playwright() as p:
     browser = p.chromium.launch(headless=True)
@@ -13,14 +13,18 @@ with sync_playwright() as p:
 
     page.goto(MAPS_URL, timeout=60000)
 
-    page.wait_for_timeout(10000)
+page.wait_for_timeout(20000)
 
-    content = page.content()
+content = page.content()
 
-    browser.close()
+browser.close()
 
-match = re.search(r'([0-9,]+)\sreviews', content)
+print(content)
 
+match = re.search(r'"reviews":[^0-9]*([0-9,]+)', content)
+
+if not match:
+    match = re.search(r'([0-9,]+)\sreviews', content, re.IGNORECASE)
 if match:
     current_reviews = int(match.group(1).replace(",", ""))
 else:
