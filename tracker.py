@@ -4,18 +4,19 @@ import json
 import os
 from datetime import datetime
 
-URL = "https://www.google.com/maps/place/Chandukaka+Saraf+Kalaburagi"
+URL = "https://www.google.com/search?q=Chandukaka+Saraf+Kalaburagi+google+reviews"
 
 headers = {
     "User-Agent": "Mozilla/5.0"
 }
 
 response = requests.get(URL, headers=headers)
+html = response.text
 
-match = re.search(r'([0-9,]+) reviews', response.text)
+review_match = re.search(r'([0-9,]+)\s+Google reviews', html)
 
-if match:
-    current_reviews = int(match.group(1).replace(",", ""))
+if review_match:
+    current_reviews = int(review_match.group(1).replace(",", ""))
 else:
     current_reviews = 0
 
@@ -44,12 +45,16 @@ chat_id = os.getenv("TELEGRAM_CHAT_ID")
 
 telegram_url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
 
-requests.post(telegram_url, data={
-    "chat_id": chat_id,
-    "text": message
-})
+telegram_response = requests.post(
+    telegram_url,
+    data={
+        "chat_id": chat_id,
+        "text": message
+    }
+)
+
+print(message)
+print(telegram_response.text)
 
 with open(FILE_NAME, "w") as file:
     json.dump({"count": current_reviews}, file)
-
-print(message)
